@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html 
+    lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Find Pupil Distance</title>
+        <link rel="stylesheet" href="assets/css/style.css"/>
+        <script defer src="https://unpkg.com/@tensorflow/tfjs-core@2.4.0/dist/tf-core.js"></script>
+        <script defer src="https://unpkg.com/@tensorflow/tfjs-converter@2.4.0/dist/tf-converter.js"></script>
+        <script defer src="https://unpkg.com/@tensorflow/tfjs-backend-webgl@2.4.0/dist/tf-backend-webgl.js"></script>
+        <script defer src="https://unpkg.com/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+        <script defer src="index.js"></script>
+    </head>
+    <body>
+        <div class="pupil-distance-text"></div>
+        <div id="buttonForCameraAndImage">
+            <button id="camera-on-button">use Camera</button>
+            <button id="choose-image-button">use Image</button>
+        </div>
+        <main style="display: none;" id="main-div-for-Image">
+            <div style="margin-bottom: 1em;">
+                <input type="file" name="image" id="image-for-eye-pupils">
+            </div>
+            <div>
+                <div style="display: none;" class="loader-image">
+                    <div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                </div>
+                <canvas width="640" height="480" id="canvasForImage"></canvas>
+            </div>
+            <div id="calculate-buttons-image" style="transform: translateY(-150%);">
+                <button id="calculate-image-pd">Calculate Pupil Distance</button>
+            </div>
+
+        </main> <canvas id="cropCanvas" style="display: none"></canvas>
+            <canvas id="threshold-canvas" style="display: none"></canvas>
+        <main style="display: none;" id="main-div-for-video">
+            <div class="main">
+                <div style="display: none;" class="loader">
+                    <div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                </div>
+                <div id="video-and-image">
+                    <video id="video" autoplay></video>
+                    <img src="assets/img/face.png"  alt="">
+                </div>
+                <canvas id="canvas"></canvas>
+                <button id="click-photo">Click Photo</button>
+                <div id="reset-and-calculate-buttons">
+                    <button  id="reset-photo">Reset Photo</button>
+                    <button id="calculate">Calculate Pupil Distance</button>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
