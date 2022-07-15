@@ -152,7 +152,6 @@ async function renderPrediction(ctx, workingCanvas) {
         pupil_distance_text.innerHTML = "<h2>No Face Detected</h2>";
         loader.style.display = "none";
         loaderImage.style.display = "none";
-
     }
 }
 
@@ -198,91 +197,63 @@ function displayIrisPosition(predictions, ctx) {
                 cropWidth,
                 cropHeight
               );
-
+              
               for (let i = 468; i < 478; i++) {
-                let x = keyPoints[i][0];
-                let y = keyPoints[i][1];
-                ctx.beginPath();
-                ctx.rect(x, y, 2, 2);
-                ctx.stroke();
-              }
-              let midX = keyPoints[168][0];
-              let midY = (keyPoints[473][1] + keyPoints[468][1]) / 2;
-
-              leftEyeCenterX = keyPoints[468][0];
-              leftEyeCenterY = keyPoints[468][1];
-
-              let rightEyeCenterX = keyPoints[473][0];
-              let rightEyeCenterY = keyPoints[473][1];
-
-              //iris left
-              let xLeft = keyPoints[474][0];
-              let yLeft = keyPoints[474][1];
-              let xRight = keyPoints[476][0];
-              let yRight = keyPoints[476][1];
-
-              //iris right
-              let xLeft2 = keyPoints[471][0];
-              let yLeft2 = keyPoints[471][1];
-              let xRight2 = keyPoints[469][0];
+                  let x = keyPoints[i][0];
+                  let y = keyPoints[i][1];
+                  ctx.beginPath();
+                  ctx.rect(x, y, 2, 2);
+                  ctx.stroke();
+                }
+                let midX = keyPoints[168][0];
+                let midY = (keyPoints[473][1] + keyPoints[468][1]) / 2;
+                
+                leftEyeCenterX = keyPoints[468][0];
+                leftEyeCenterY = keyPoints[468][1];
+                
+                let rightEyeCenterX = keyPoints[473][0];
+                let rightEyeCenterY = keyPoints[473][1];
+                
+                //iris left
+                let xLeft = keyPoints[474][0];
+                let yLeft = keyPoints[474][1];
+                let xRight = keyPoints[476][0];
+                let yRight = keyPoints[476][1];
+                
+                //iris right
+                let xLeft2 = keyPoints[471][0];
+                let yLeft2 = keyPoints[471][1];
+                let xRight2 = keyPoints[469][0];
               let yRight2 = keyPoints[469][1];
 
               let leftEyePoint = new Point(leftEyeCenterX, leftEyeCenterY);
               let rightEyePoint = new Point(rightEyeCenterX, rightEyeCenterY);
               let pupilDistance = leftEyePoint.distanceTo(rightEyePoint);
-
-              ctx.lineWidth = 3;
-              ctx.strokeStyle = "green";
-              ctx.beginPath();
-              ctx.moveTo(leftEyeCenterX, leftEyeCenterY);
-              ctx.lineTo(midX, midY);
-              ctx.stroke();
-
-              ctx.strokeStyle = "blue";
-              ctx.beginPath();
-              ctx.moveTo(rightEyeCenterX, rightEyeCenterY);
-              ctx.lineTo(midX, midY);
-              ctx.stroke();
-
+              
               let midPoint = new Point(midX, midY);
               let leftEyePdInDistance = midPoint.distanceTo(leftEyePoint);
               let rightEyePdInDistance = midPoint.distanceTo(rightEyePoint);
-
+              
               let left = new Point(xLeft, yLeft);
               let right = new Point(xRight, yRight);
-
+              
               let left2 = new Point(xLeft2, yLeft2);
               let right2 = new Point(xRight2, yRight2);
-
+              
               let irisDiameterLeft = left.distanceTo(right);
               let irisDiameterRight = left2.distanceTo(right2);
-
+              
               irisWidth = (irisDiameterLeft + irisDiameterRight) / 2;
-
+              
               let LeftEyePD = (11.7 / irisWidth) * leftEyePdInDistance;
               let RightEyePD = (11.7 / irisWidth) * rightEyePdInDistance;
               let pd = (11.7 / irisWidth) * pupilDistance;
-              loader.style.display = "none";
-              loaderImage.style.display = "none";
-              pupil_distance_text.innerHTML =
-                "<h2>Your Pupil Distance is approximately " +
-                roundToNearest5(pd * 100) / 100 +
-                "mm</h2>" +
-                "<h3>Your Left Eye Monocular PD is approximately " +
-                roundToNearest5(LeftEyePD * 100) / 100 +
-                "mm</h3>" +
-                "<h3>Your Right Eye Monocular PD is approximately " +
-                roundToNearest5(RightEyePD * 100) / 100 +
-                "mm</h3>"+
-                "<h3>Your Right Eye Monocular PD is approximately " +
-                roundToNearest5(RightEyePD * 100) / 100 +
-                "mm</h3>";
+                loader.style.display = "none";
+                loaderImage.style.display = "none";
             }
         });
     }
 }
-
-roundToNearest5 = (num) => Math.round(num / 50) * 50;
 
 class Point {
     constructor(x, y) {
@@ -296,48 +267,41 @@ class Point {
         };
     }
 }
- 
- function drawSH(ctx) {
+
+roundToNearest5 = (num) => Math.round(num / 50) * 50;
+
+function drawSH(ctx) {
     let threshold = (+85) / 100;
     thrCanvas.width = pupilOffsetWidth;
 
     let thresholded = computeAdaptiveThreshold(cropCanvasCtx.getImageData(0, 0, cropCanvas.width, cropCanvas.height), threshold);
     //full thresholded on main canvas corner
-     ctx.putImageData(thresholded, 0, 0);
+    ctx.putImageData(thresholded, 0, 0);
 
      //crop thresholded on separate canvas
     thrCanvasCtx.putImageData(thresholded, 0, 0);
 
     let imageData = thrCanvasCtx.getImageData(0, 0, thrCanvas.width, thrCanvas.height);
     
-    console.log(imageData);
-    console.log(imageData.width, imageData.height);
-   let blackpixel = 0; let shp = 0; 
+    let blackpixel = 0; let shp = 0; 
     for (var row = imageData.height; row > 0; row--) {
         col = imageData.width - 1;
         var pixel = imageData.data.subarray(
             (row * imageData.width + col) * 4,
             (row * imageData.width + col) * 4 + 4
         );
-        console.log(pixel);
-        // to get valid black pixel(0,0,0,255)
+
         if (pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0 && pixel[3] == 255) {
             blackpixel++;
         }
-        //first valid white(255,255,255,255) after black pixel frame
+
         if (blackpixel > 0 && pixel.every(p => p === 255)) {
-            // console.log('row', row)
-            // console.log('r h', row, pupilOffsetHeight)
-            // thrCanvasCtx.beginPath();
-            // thrCanvasCtx.strokeStyle = "green";
-            // thrCanvasCtx.rect(col, row, 3, 3);
-            // thrCanvasCtx.stroke();
             shp = row - pupilOffsetHeight;// SH in pixel(frameoffsetheight - pupiloffet)
             break;
         }
 
     }
-    console.log(shp, 'px', pupilOffsetHeight, irisWidth)
+
     ctx.beginPath();
     ctx.strokeStyle = "yellow";
     ctx.moveTo(leftEyeCenterX, leftEyeCenterY);
@@ -346,11 +310,8 @@ class Point {
 
     let shmm = (11.7 / irisWidth) * shp;
 
-    console.log(shmm)
-    pupil_distance_text.insertAdjacentHTML('beforeend', "<h3>Your SH is approximately " +
-    roundToNearest5(shmm * 100) / 100 +
-    "mm</h3>");
-    
+    pupil_distance_text.innerHTML = "<h3>Your SH is approximately " +
+                                        roundToNearest5(shmm * 100) / 100 + "mm</h3>";
 }
 
 
@@ -380,6 +341,7 @@ function buildIntegral_Gray(sourceImageData) {
     }
     return integral;
 }
+
 function createImageData(width, height) {
     var canvas = document.createElement('canvas');
     
@@ -399,7 +361,8 @@ function getIntegralAt(integral, width, x1, y1, x2, y2) {
     }
     return result;
 }
-    function computeAdaptiveThreshold(sourceImageData, ratio, callback) {
+
+function computeAdaptiveThreshold(sourceImageData, ratio, callback) {
     var integral = buildIntegral_Gray(sourceImageData);
 
     var width = sourceImageData.width;
@@ -434,6 +397,3 @@ function getIntegralAt(integral, width, x1, y1, x2, y2) {
     }
     return result;
 }
-
-
-
