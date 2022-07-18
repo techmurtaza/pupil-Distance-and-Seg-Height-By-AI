@@ -8,6 +8,10 @@ let calculate_distance = document.querySelector("#calculate");
 let video_image_div = document.querySelector("#video-and-image");
 let loader = document.querySelector(".loader");
 let calculate = document.querySelector("#calculate");
+let calculate_manually = document.querySelector("#calculate-manually");
+let canvasFabric = new fabric.Canvas('canvasFabric', {selection: false,});
+let canvasFabricID = document.querySelector("#canvasFabric");
+
 let pupil_distance_text = document.querySelector(".pupil-distance-text");
 let ctxImage = document.getElementById('canvasForImage').getContext('2d');
 let mainDivForVideo = document.querySelector("#main-div-for-video");
@@ -16,6 +20,7 @@ let cameraOnButton = document.querySelector("#camera-on-button");
 let chooseImageButton = document.querySelector("#choose-image-button");
 let imageForEyePupils = document.querySelector("#image-for-eye-pupils");
 let loaderImage = document.querySelector(".loader-image");
+let calculateManuallyValue = document.getElementById("calculate-manually-value");
 
 let cropCanvas = document.getElementById("cropCanvas");
 let cropCanvasCtx = cropCanvas.getContext("2d");
@@ -27,13 +32,30 @@ let pupilOffsetHeight=0;
 let irisWidth=0;
 let leftEyeCenterX = 0;
 let leftEyeCenterY = 0;
+let leftEyelidBottomX = 0;
+let leftEyelidBottomY = 0;
 
+
+let rightEyeCenterX = 0;
+let rightEyeCenterY = 0;
+
+let eyelidOffsetHeight = 0;
 
 let canvasForImage = document.querySelector("#canvasForImage");
 let calculateImagePd = document.querySelector("#calculate-image-pd");
 
+let canvasContainer = document.querySelector('.canvas-container');
+canvasContainer.style.display = 'none';
+canvasContainer.style.position = "absolute";
+canvasContainer.style.top = "0";
+
+
+
 cameraOnButton.addEventListener("click", () => {
     resetPhotoFunction();
+    canvasFabric.clear();
+    canvasContainer.style.display = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     mainDivForImage.style.display = "none";
     mainDivForVideo.style.display = "";
     startCamera();
@@ -41,6 +63,7 @@ cameraOnButton.addEventListener("click", () => {
 
 chooseImageButton.addEventListener("click", () => {
     ctxImage.clearRect(0, 0, canvasForImage.width, canvasForImage.height);
+    
     imageForEyePupils.value = '';
     mainDivForVideo.style.display = "none";
     mainDivForImage.style.display = "";
@@ -72,6 +95,8 @@ video.addEventListener("playing", function () {
     setTimeout(function () {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
+        canvasFabric.setWidth(video.videoWidth);
+        canvasFabric.setHeight(video.videoHeight);
     }, 500);
  
     
@@ -96,6 +121,7 @@ click_button.addEventListener('click', function () {
     canvas.style.display = "block";
     reset_and_calculate_buttons_div.style.display = "flex";
     click_button.style.display = "none";
+    calculate_manually.style.display = "block";
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
 
     ctx.save();
@@ -109,6 +135,9 @@ reset_photo.addEventListener('click', function () {
 })
 
 let resetPhotoFunction = () => {
+    canvasFabric.clear();
+    canvasContainer.style.display = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.style.display = "none";
     video_image_div.style.display = "";
     calculate.style.display = "";
@@ -120,16 +149,48 @@ let resetPhotoFunction = () => {
 calculate_distance.addEventListener('click', function () {
     loader.style.display = "flex";
     calculate.style.display = "none";
+    calculate_manually.style.display = "none";
     autoDraw(ctx, canvas);
 });
 
+calculate_manually.addEventListener('click', function () {
+    loader.style.display = "flex";
+    calculate.style.display = "none";
+    calculate_manually.style.display = "none";
+    calculateManuallyValue.style.display = "block";
+    autoDraw(ctx, canvas, true);
+});
+
+calculateManuallyValue.addEventListener('click', function () {
+
+    let rightEyeMidXY = new Point(fixedEyePositionRight.left + fixedEyePositionRight.radius, 
+                                    fixedEyePositionRight.top + fixedEyePositionRight.radius)
+    let rightEyeDistancePP = rightEyeMidXY.distanceTo(new Point(movableEyePositionRight.left + movableEyePositionRight.radius, 
+                                    movableEyePositionRight.top + movableEyePositionRight.radius));
+
+    let leftEyeMidXY = new Point(fixedEyePositionLeft.left + fixedEyePositionLeft.radius, 
+                                    fixedEyePositionLeft.top + fixedEyePositionLeft.radius)
+    let leftEyeDistancePP = leftEyeMidXY.distanceTo(new Point(movableEyePositionLeft.left + movableEyePositionLeft.radius, 
+                                    movableEyePositionLeft.top + movableEyePositionLeft.radius));
+
+    let segHeightInProgressiveMM = (11.7 / irisWidth) * rightEyeDistancePP;
+
+    let segHeightInBiFocalMM = (11.7 / irisWidth) * leftEyeDistancePP;//bifocal SH in mm
+
+    pupil_distance_text.innerHTML = "<h3>Your SH(progressive) is approximately " +
+                                    roundToNearest5(segHeightInProgressiveMM * 100) / 100 + "mm</h3>" +
+                                    "<h3>Your SH(bifocal) is approximately " +
+                                    roundToNearest5(segHeightInBiFocalMM * 100) / 100 + "mm</h3>"
+    calculateManuallyValue.style.display = "none";
+})
+
 // AUTO CALC PD METHODS START-----------------------------------------------
 
-async function autoDraw(canvas, workingCanvas) {
+async function autoDraw(canvas, workingCanvas, manual = false) {
 
     model = await loadFaceLandmarkDetectionModel();
     //Render Face Mesh Prediction
-    renderPrediction(canvas, workingCanvas);
+    renderPrediction(canvas, workingCanvas, manual);
 
 }
 
@@ -141,13 +202,16 @@ async function loadFaceLandmarkDetectionModel() {
     );
 }
 
-async function renderPrediction(ctx, workingCanvas) {
+async function renderPrediction(ctx, workingCanvas, manual = false) {
     const predictions = await model.estimateFaces({
         input: ctx.getImageData(0, 0, workingCanvas.width, workingCanvas.height),
     });
+
     if(predictions.length){
-        displayIrisPosition(predictions, ctx);
-        drawSH(ctx);
+        displayIrisPosition(predictions, ctx, manual);
+        if(!manual) {
+            drawSH(ctx);
+        }   
     }else{
         pupil_distance_text.innerHTML = "<h2>No Face Detected</h2>";
         loader.style.display = "none";
@@ -155,38 +219,55 @@ async function renderPrediction(ctx, workingCanvas) {
     }
 }
 
+let fixedEyePositionRight = '';
+let movableEyePositionRight = '';
 
-function displayIrisPosition(predictions, ctx) {
+let fixedEyePositionLeft = '';
+let movableEyePositionLeft = '';
+
+function displayIrisPosition(predictions, ctx, manual = false) {
+
     ctx.strokeStyle = "red";
     if (predictions.length > 0) {
         predictions.forEach((prediction) => {
             const keyPoints = prediction.scaledMesh;
             if (keyPoints.length == 478) {
-               let cropLeftX = keyPoints[9][0];
-               let cropLeftY = keyPoints[9][1];
+                let cropLeftX = keyPoints[9][0];
+                let cropLeftY = keyPoints[9][1];
 
-               let cropTopX = keyPoints[334][0];
-               let cropTopY = keyPoints[334][1];
+                let cropTopX = keyPoints[334][0];
+                let cropTopY = keyPoints[334][1];
 
-               let cropRightX = keyPoints[356][0];
-               let cropRightY = keyPoints[356][1];
+                let cropRightX = keyPoints[356][0];
+                let cropRightY = keyPoints[356][1];
 
-               let cropBottomX = keyPoints[371][0];
-               let cropBottomY = keyPoints[371][1];
+                let cropBottomX = keyPoints[371][0];
+                let cropBottomY = keyPoints[371][1];
 
+                leftEyeCenterX = keyPoints[468][0];
+                leftEyeCenterY = keyPoints[468][1];
+                
+                rightEyeCenterX = keyPoints[473][0];
+                rightEyeCenterY = keyPoints[473][1];
 
-              pupilOffsetWidth = cropLeftX - keyPoints[473][0];
-              pupilOffsetHeight = keyPoints[473][1] - cropTopY;
+                leftEyelidBottomX =  keyPoints[374][0];
+                leftEyelidBottomY =  keyPoints[374][1];
 
-              let cropHeight = cropBottomY - cropTopY;
-              let cropWidth = cropRightX - cropLeftX;
+                pupilOffsetWidth = cropLeftX - rightEyeCenterX;
+                pupilOffsetHeight = rightEyeCenterY - cropTopY;
+
+                eyelidOffsetWidth = cropLeftX - leftEyelidBottomX;
+                eyelidOffsetHeight = leftEyelidBottomY - cropTopY;
+
+                let cropHeight = cropBottomY - cropTopY;
+                let cropWidth = cropRightX - cropLeftX;
             //   console.log(cropWidth, cropHeight);
-              cropCanvas.width = cropWidth;
-              cropCanvas.height = cropHeight;
-              cropCanvasCtx.clearRect(0, 0, cropWidth, cropHeight);
-              cropCanvasCtx.fillStyle = "transparent";
+                cropCanvas.width = cropWidth;
+                cropCanvas.height = cropHeight;
+                cropCanvasCtx.clearRect(0, 0, cropWidth, cropHeight);
+                cropCanvasCtx.fillStyle = "transparent";
 
-              cropCanvasCtx.drawImage(
+                cropCanvasCtx.drawImage(
                 ctx.canvas,
                 cropLeftX,
                 cropTopY,
@@ -196,23 +277,74 @@ function displayIrisPosition(predictions, ctx) {
                 0,
                 cropWidth,
                 cropHeight
-              );
-              
-              for (let i = 468; i < 478; i++) {
-                  let x = keyPoints[i][0];
-                  let y = keyPoints[i][1];
-                  ctx.beginPath();
-                  ctx.rect(x, y, 2, 2);
-                  ctx.stroke();
+                );
+                
+                for (let i = 468; i < 478; i++) {
+                    let x = keyPoints[i][0];
+                    let y = keyPoints[i][1];
+                    ctx.beginPath();
+                    ctx.rect(x, y, 2, 2);
+                    ctx.stroke();
                 }
                 let midX = keyPoints[168][0];
                 let midY = (keyPoints[473][1] + keyPoints[468][1]) / 2;
-                
-                leftEyeCenterX = keyPoints[468][0];
-                leftEyeCenterY = keyPoints[468][1];
-                
-                let rightEyeCenterX = keyPoints[473][0];
-                let rightEyeCenterY = keyPoints[473][1];
+
+                if(manual){
+                    
+                    let image = backgroundImageDataURL = canvas.toDataURL();
+                    canvasFabric.setBackgroundImage(backgroundImageDataURL, canvasFabric.renderAll.bind(canvasFabric), {
+                        backgroundImageStretch: false
+                    });
+
+                    canvasContainer.style.display = "block";
+
+                    fixedEyePositionLeft = new fabric.Circle({
+                        top:    leftEyelidBottomY - 5,
+                        left:   leftEyelidBottomX - 5,
+                        radius: 5,
+                        fill:   'blue',
+                        hasControls: false,
+                        lockMovementX: true,
+                        lockMovementY: true,
+                    });
+                    
+                    movableEyePositionLeft = new fabric.Circle({
+                        top:    leftEyelidBottomY - 5,
+                        left:   leftEyelidBottomX - 5,
+                        radius: 5,
+                        fill:   'red',
+                        hasControls: false,
+                        lockMovementX: true,
+                    });
+
+                    fixedEyePositionRight = new fabric.Circle({
+                        top:    rightEyeCenterY - 5,
+                        left:   rightEyeCenterX - 5,
+                        radius: 5,
+                        fill:   'blue',
+                        hasControls: false,
+                        lockMovementX: true,
+                        lockMovementY: true,
+                    });
+                    
+                    movableEyePositionRight = new fabric.Circle({
+                        top:    rightEyeCenterY - 5,
+                        left:   rightEyeCenterX - 5,
+                        radius: 5,
+                        fill:   'red',
+                        hasControls: false,
+                        lockMovementX: true,
+                    });
+
+                    canvasFabric.add(fixedEyePositionRight);
+                    canvasFabric.add(movableEyePositionRight);
+                    canvasFabric.add(fixedEyePositionLeft);
+                    canvasFabric.add(movableEyePositionLeft);
+
+                    console.log(fixedEyePositionRight, movableEyePositionRight);
+                }else{
+
+                }
                 
                 //iris left
                 let xLeft = keyPoints[474][0];
@@ -224,30 +356,30 @@ function displayIrisPosition(predictions, ctx) {
                 let xLeft2 = keyPoints[471][0];
                 let yLeft2 = keyPoints[471][1];
                 let xRight2 = keyPoints[469][0];
-              let yRight2 = keyPoints[469][1];
+                let yRight2 = keyPoints[469][1];
 
-              let leftEyePoint = new Point(leftEyeCenterX, leftEyeCenterY);
-              let rightEyePoint = new Point(rightEyeCenterX, rightEyeCenterY);
-              let pupilDistance = leftEyePoint.distanceTo(rightEyePoint);
-              
-              let midPoint = new Point(midX, midY);
-              let leftEyePdInDistance = midPoint.distanceTo(leftEyePoint);
-              let rightEyePdInDistance = midPoint.distanceTo(rightEyePoint);
-              
-              let left = new Point(xLeft, yLeft);
-              let right = new Point(xRight, yRight);
-              
-              let left2 = new Point(xLeft2, yLeft2);
-              let right2 = new Point(xRight2, yRight2);
-              
-              let irisDiameterLeft = left.distanceTo(right);
-              let irisDiameterRight = left2.distanceTo(right2);
-              
-              irisWidth = (irisDiameterLeft + irisDiameterRight) / 2;
-              
-              let LeftEyePD = (11.7 / irisWidth) * leftEyePdInDistance;
-              let RightEyePD = (11.7 / irisWidth) * rightEyePdInDistance;
-              let pd = (11.7 / irisWidth) * pupilDistance;
+                let leftEyePoint = new Point(leftEyeCenterX, leftEyeCenterY);
+                let rightEyePoint = new Point(rightEyeCenterX, rightEyeCenterY);
+                let pupilDistance = leftEyePoint.distanceTo(rightEyePoint);
+                
+                let midPoint = new Point(midX, midY);
+                let leftEyePdInDistance = midPoint.distanceTo(leftEyePoint);
+                let rightEyePdInDistance = midPoint.distanceTo(rightEyePoint);
+                
+                let left = new Point(xLeft, yLeft);
+                let right = new Point(xRight, yRight);
+                
+                let left2 = new Point(xLeft2, yLeft2);
+                let right2 = new Point(xRight2, yRight2);
+                
+                let irisDiameterLeft = left.distanceTo(right);
+                let irisDiameterRight = left2.distanceTo(right2);
+                
+                irisWidth = (irisDiameterLeft + irisDiameterRight) / 2;
+                
+                let LeftEyePD = (11.7 / irisWidth) * leftEyePdInDistance;
+                let RightEyePD = (11.7 / irisWidth) * rightEyePdInDistance;
+                let pd = (11.7 / irisWidth) * pupilDistance;
                 loader.style.display = "none";
                 loaderImage.style.display = "none";
             }
@@ -283,7 +415,9 @@ function drawSH(ctx) {
 
     let imageData = thrCanvasCtx.getImageData(0, 0, thrCanvas.width, thrCanvas.height);
     
-    let blackpixel = 0; let shp = 0; 
+    let blackpixel = 0; 
+    let shp = 0; 
+    let shbp = 0; 
     for (var row = imageData.height; row > 0; row--) {
         col = imageData.width - 1;
         var pixel = imageData.data.subarray(
@@ -297,6 +431,7 @@ function drawSH(ctx) {
 
         if (blackpixel > 0 && pixel.every(p => p === 255)) {
             shp = row - pupilOffsetHeight;// SH in pixel(frameoffsetheight - pupiloffet)
+            shbp = row - eyelidOffsetHeight;// SH in pixel(frameoffsetheight - pupiloffet)
             break;
         }
 
@@ -308,10 +443,18 @@ function drawSH(ctx) {
     ctx.lineTo(leftEyeCenterX, leftEyeCenterY + shp);
     ctx.stroke();
 
-    let shmm = (11.7 / irisWidth) * shp;
+    ctx.beginPath();
+    ctx.strokeStyle = "white";
+    ctx.moveTo(leftEyelidBottomX, leftEyelidBottomY);
+    ctx.lineTo(leftEyelidBottomX, leftEyelidBottomY + shbp);
+    ctx.stroke();
 
-    pupil_distance_text.innerHTML = "<h3>Your SH is approximately " +
-                                        roundToNearest5(shmm * 100) / 100 + "mm</h3>";
+    let shmm = (11.7 / irisWidth) * shp;
+    let shbmm = (11.7 / irisWidth) * shbp;//bifocal SH in mm
+    pupil_distance_text.innerHTML = "<h3>Your SH(progressive) is approximately " +
+                                    roundToNearest5(shmm * 100) / 100 + "mm</h3>" +
+                                    "<h3>Your SH(bifical) is approximately " +
+                                    roundToNearest5(shbmm * 100) / 100 + "mm</h3>"
 }
 
 
@@ -397,3 +540,72 @@ function computeAdaptiveThreshold(sourceImageData, ratio, callback) {
     }
     return result;
 }
+
+var zoom = document.getElementById("zoom");
+var zoomCtx = zoom.getContext("2d");
+
+canvasFabric.on('object:moving', function(e) {
+    let object = e.target;
+    if(object.top > 67 && object.top < 393 && object.left > 150 && object.left < 489) {
+        this.isDragging = true;
+    }else{
+        this.isDragging = false;
+    }
+
+});
+
+let lineForRight = ""
+let lineForLeft = ""
+
+canvasFabric.on('object:modified', function(e) {
+    this.isDragging = false;
+    zoom.style.display = "none";
+    if(e.target.left == fixedEyePositionRight.left){
+        if(lineForRight){
+            canvasFabric.remove(lineForRight);
+        }
+
+        lineForRight = new fabric.Line([fixedEyePositionRight.left + fixedEyePositionRight.radius, 
+                                fixedEyePositionRight.top + fixedEyePositionRight.radius , 
+                                movableEyePositionRight.left + movableEyePositionRight.radius, 
+                                movableEyePositionRight.top + movableEyePositionRight.radius ], {
+            stroke: 'blue',
+            strokeWidth: 4,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+        });
+        canvasFabric.add(lineForRight);
+    }else{
+
+        if(lineForLeft){
+            canvasFabric.remove(lineForLeft);
+        }
+
+        lineForLeft = new fabric.Line([fixedEyePositionLeft.left + fixedEyePositionLeft.radius, 
+                                fixedEyePositionLeft.top + fixedEyePositionLeft.radius , 
+                                movableEyePositionLeft.left + movableEyePositionLeft.radius, 
+                                movableEyePositionLeft.top + movableEyePositionLeft.radius ], {
+            stroke: 'blue',
+            strokeWidth: 4,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+        });
+        canvasFabric.add(lineForLeft);
+    }
+})
+
+canvasFabric.on('mouse:move', function(opt) {
+    if (this.isDragging) {
+        var e = opt.e;
+        zoomCtx.clearRect(0, 0, zoom.width, zoom.height);
+        zoomCtx.fillStyle = "transparent";
+        zoomCtx.drawImage(
+            canvasFabric.lowerCanvasEl, e.offsetX - 50, e.offsetY - 50, 100, 100, 0, 0, 200, 200
+        );
+        zoom.style.top = e.pageY + 10 + "px";
+        zoom.style.left = e.pageX + 10 + "px";
+        zoom.style.display = "block";
+    }
+});

@@ -46,6 +46,10 @@ div img {
     max-height: 480px;
 }
 
+#main-div-for-video{
+    position: relative;
+}
+
 #canvasForImage{
     max-height: 480px;
 }
@@ -63,6 +67,15 @@ div img {
 
 #video-and-image {
     position: relative;
+}
+
+#zoom {
+    border: 1px black solid;
+    box-shadow: 5px 5px 10px #1e1e1e;
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    display: none;
 }
 
 /* Animation */

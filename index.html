@@ -11,6 +11,7 @@
         <script defer src="https://unpkg.com/@tensorflow/tfjs-converter@2.4.0/dist/tf-converter.js"></script>
         <script defer src="https://unpkg.com/@tensorflow/tfjs-backend-webgl@2.4.0/dist/tf-backend-webgl.js"></script>
         <script defer src="https://unpkg.com/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+        <script defer src="assets/js/fabric.min.js"></script>
         <script defer src="assets/js/index.js"></script>
     </head>
     <body>
@@ -33,8 +34,9 @@
                 <button id="calculate-image-pd">Calculate Segment Height</button>
             </div>
 
-        </main> <canvas id="cropCanvas" style="display: none"></canvas>
-            <canvas id="threshold-canvas" style="display: none"></canvas>
+        </main> 
+        <canvas id="cropCanvas" style="display: none"></canvas>
+        <canvas id="threshold-canvas" style="display: none"></canvas>
         <main style="display: none;" id="main-div-for-video">
             <div class="main">
                 <div style="display: none;" class="loader">
@@ -44,13 +46,17 @@
                     <video id="video" autoplay></video>
                     <img src="assets/img/face.png"  alt="">
                 </div>
+                <canvas id="canvasFabric"></canvas>
                 <canvas id="canvas"></canvas>
                 <button id="click-photo">Click Photo</button>
                 <div id="reset-and-calculate-buttons">
                     <button  id="reset-photo">Reset Photo</button>
-                    <button id="calculate">Calculate Segment Height</button>
+                    <button id="calculate">Calculate SH</button>
+                    <button id="calculate-manually">Manually Calculate SH</button>
+                    <button id="calculate-manually-value" style="display: none;">Calculate SH</button>
                 </div>
             </div>
         </main>
+        <canvas id="zoom" width="200" height="200"></canvas>
     </body>
 </html>
