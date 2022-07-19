@@ -10,7 +10,7 @@ let loader = document.querySelector(".loader");
 let calculate = document.querySelector("#calculate");
 let calculate_manually = document.querySelector("#calculate-manually");
 let canvasFabric = new fabric.Canvas('canvasFabric', {selection: false,});
-let canvasFabricID = document.querySelector("#canvasFabric");
+let canvasFabricID = document.querySelector("#main-div-for-video #canvasFabric");
 
 let pupil_distance_text = document.querySelector(".pupil-distance-text");
 let ctxImage = document.getElementById('canvasForImage').getContext('2d');
@@ -44,34 +44,47 @@ let eyelidOffsetHeight = 0;
 let canvasForImage = document.querySelector("#canvasForImage");
 let calculateImagePd = document.querySelector("#calculate-image-pd");
 
-let canvasContainer = document.querySelector('.canvas-container');
+let canvasContainer = document.querySelector('#main-div-for-video .canvas-container');
 canvasContainer.style.display = 'none';
 canvasContainer.style.position = "absolute";
 canvasContainer.style.top = "0";
 
+let flagImage = false;
 
+let fabricCanvasForImage =  new fabric.Canvas('fabricCanvasForImage', {selection: false,});
+let calculateImagePdManually = document.querySelector("#calculate-image-pd-manually");
+let imageCanvasContainer = document.querySelector("#main-div-for-Image .canvas-container");
+imageCanvasContainer.style.display = 'none';
+imageCanvasContainer.style.position = "absolute";
+imageCanvasContainer.style.top = "0";
+
+let getManualPdResult = document.querySelector("#calculate-image-pd-for-manually");
+getManualPdResult.style.display = "none";
 
 cameraOnButton.addEventListener("click", () => {
     resetPhotoFunction();
     canvasFabric.clear();
+    fabricCanvasForImage.clear();
     canvasContainer.style.display = 'none';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     mainDivForImage.style.display = "none";
     mainDivForVideo.style.display = "";
     startCamera();
+    flagImage = false;
 });
 
 chooseImageButton.addEventListener("click", () => {
     ctxImage.clearRect(0, 0, canvasForImage.width, canvasForImage.height);
-    
+    flagImage = true;
+    fabricCanvasForImage.clear()
+    imageCanvasContainer.style.display = 'none';
     imageForEyePupils.value = '';
     mainDivForVideo.style.display = "none";
     mainDivForImage.style.display = "";
     calculateImagePd.style.display = "none";
+    calculateImagePdManually.style.display = "none";
     pupil_distance_text.innerHTML = "";
 })
-
-
 
 imageForEyePupils.addEventListener('change', (e) => {
     pupil_distance_text.innerHTML = "";
@@ -89,6 +102,8 @@ imageForEyePupils.addEventListener('change', (e) => {
         ctxImage.drawImage(img, 0, 0, imgWidth, imgHeight);
     }
     calculateImagePd.style.display = "";
+    calculateImagePdManually.style.display = "";
+    fabricCanvasForImage.clear()
 })
 
 video.addEventListener("playing", function () {
@@ -113,7 +128,21 @@ async function startCamera() {
 calculateImagePd.addEventListener("click", () => {
     loaderImage.style.display = "flex";
     calculateImagePd.style.display = "none";
+    calculateImagePdManually.style.display = "none";
     autoDraw(ctxImage, canvasForImage);
+})
+
+calculateImagePdManually.addEventListener("click", () => {
+    loaderImage.style.display = "flex";
+    calculateImagePdManually.style.display = "none";
+    calculateImagePd.style.display = "none";
+    getManualPdResult.style.display = "";
+    autoDraw(ctxImage, canvasForImage, true);
+})
+
+getManualPdResult.addEventListener("click", () => {
+    calculateManuallyValueFunction()
+    getManualPdResult.style.display = "none";
 })
 
 click_button.addEventListener('click', function () {
@@ -161,26 +190,27 @@ calculate_manually.addEventListener('click', function () {
     autoDraw(ctx, canvas, true);
 });
 
-calculateManuallyValue.addEventListener('click', function () {
-
+var calculateManuallyValueFunction = () => {
     let rightEyeMidXY = new Point(fixedEyePositionRight.left + fixedEyePositionRight.radius, 
-                                    fixedEyePositionRight.top + fixedEyePositionRight.radius)
-    let rightEyeDistancePP = rightEyeMidXY.distanceTo(new Point(movableEyePositionRight.left + movableEyePositionRight.radius, 
-                                    movableEyePositionRight.top + movableEyePositionRight.radius));
+        fixedEyePositionRight.top + fixedEyePositionRight.radius)
+    let rightEyeDistancePP = rightEyeMidXY.distanceTo(new Point(movableEyePositionRight.left, movableEyePositionRight.top));
 
     let leftEyeMidXY = new Point(fixedEyePositionLeft.left + fixedEyePositionLeft.radius, 
-                                    fixedEyePositionLeft.top + fixedEyePositionLeft.radius)
-    let leftEyeDistancePP = leftEyeMidXY.distanceTo(new Point(movableEyePositionLeft.left + movableEyePositionLeft.radius, 
-                                    movableEyePositionLeft.top + movableEyePositionLeft.radius));
+            fixedEyePositionLeft.top + fixedEyePositionLeft.radius)
+    let leftEyeDistancePP = leftEyeMidXY.distanceTo(new Point(movableEyePositionLeft.left, movableEyePositionLeft.top));
 
     let segHeightInProgressiveMM = (11.7 / irisWidth) * rightEyeDistancePP;
 
     let segHeightInBiFocalMM = (11.7 / irisWidth) * leftEyeDistancePP;//bifocal SH in mm
 
     pupil_distance_text.innerHTML = "<h3>Your SH(progressive) is approximately " +
-                                    roundToNearest5(segHeightInProgressiveMM * 100) / 100 + "mm</h3>" +
-                                    "<h3>Your SH(bifocal) is approximately " +
-                                    roundToNearest5(segHeightInBiFocalMM * 100) / 100 + "mm</h3>"
+            roundToNearest5(segHeightInProgressiveMM * 100) / 100 + "mm</h3>" +
+            "<h3>Your SH(bifocal) is approximately " +
+            roundToNearest5(segHeightInBiFocalMM * 100) / 100 + "mm</h3>"
+}
+
+calculateManuallyValue.addEventListener('click', function () {
+    calculateManuallyValueFunction()
     calculateManuallyValue.style.display = "none";
 })
 
@@ -224,6 +254,50 @@ let movableEyePositionRight = '';
 
 let fixedEyePositionLeft = '';
 let movableEyePositionLeft = '';
+
+let createElementForFabricCanvas = () => {
+
+    fixedEyePositionLeft = new fabric.Circle({
+        top:    leftEyelidBottomY - 5,
+        left:   leftEyelidBottomX - 5,
+        radius: 5,
+        fill:   'blue',
+        hasControls: false,
+        lockMovementX: true,
+        lockMovementY: true,
+    });
+
+    movableEyePositionLeft = new fabric.Path('M 73 56 L -4 4 L 20 94 L 20 38 Z', {
+        top:    leftEyelidBottomY,
+        left:   leftEyelidBottomX,
+        hasControls: false,
+        fill: 'red',
+        scaleX: .4,
+        scaleY: .4,
+        lockMovementX: true,
+    })
+
+    fixedEyePositionRight = new fabric.Circle({
+        top:    rightEyeCenterY - 5,
+        left:   rightEyeCenterX - 5,
+        radius: 5,
+        fill:   'blue',
+        hasControls: false,
+        lockMovementX: true,
+        lockMovementY: true,
+    });
+    
+    movableEyePositionRight = new fabric.Path('M 73 56 L -4 4 L 20 94 L 20 38 Z', {
+        top:    rightEyeCenterY,
+        left:   rightEyeCenterX,
+        hasControls: false,
+        fill: 'red',
+        scaleX: .4,
+        scaleY: .4,
+        lockMovementX: true,
+    })
+
+}
 
 function displayIrisPosition(predictions, ctx, manual = false) {
 
@@ -289,61 +363,36 @@ function displayIrisPosition(predictions, ctx, manual = false) {
                 let midX = keyPoints[168][0];
                 let midY = (keyPoints[473][1] + keyPoints[468][1]) / 2;
 
-                if(manual){
+                if(manual && !flagImage){
                     
-                    let image = backgroundImageDataURL = canvas.toDataURL();
+                    let backgroundImageDataURL = canvas.toDataURL();
                     canvasFabric.setBackgroundImage(backgroundImageDataURL, canvasFabric.renderAll.bind(canvasFabric), {
                         backgroundImageStretch: false
                     });
 
                     canvasContainer.style.display = "block";
 
-                    fixedEyePositionLeft = new fabric.Circle({
-                        top:    leftEyelidBottomY - 5,
-                        left:   leftEyelidBottomX - 5,
-                        radius: 5,
-                        fill:   'blue',
-                        hasControls: false,
-                        lockMovementX: true,
-                        lockMovementY: true,
-                    });
+                    createElementForFabricCanvas()
                     
-                    movableEyePositionLeft = new fabric.Circle({
-                        top:    leftEyelidBottomY - 5,
-                        left:   leftEyelidBottomX - 5,
-                        radius: 5,
-                        fill:   'red',
-                        hasControls: false,
-                        lockMovementX: true,
-                    });
-
-                    fixedEyePositionRight = new fabric.Circle({
-                        top:    rightEyeCenterY - 5,
-                        left:   rightEyeCenterX - 5,
-                        radius: 5,
-                        fill:   'blue',
-                        hasControls: false,
-                        lockMovementX: true,
-                        lockMovementY: true,
-                    });
-                    
-                    movableEyePositionRight = new fabric.Circle({
-                        top:    rightEyeCenterY - 5,
-                        left:   rightEyeCenterX - 5,
-                        radius: 5,
-                        fill:   'red',
-                        hasControls: false,
-                        lockMovementX: true,
-                    });
-
                     canvasFabric.add(fixedEyePositionRight);
                     canvasFabric.add(movableEyePositionRight);
                     canvasFabric.add(fixedEyePositionLeft);
                     canvasFabric.add(movableEyePositionLeft);
 
-                    console.log(fixedEyePositionRight, movableEyePositionRight);
-                }else{
+                }else if(manual && flagImage){
 
+                    let backgroundImageDataURL = canvasForImage.toDataURL();
+                    fabricCanvasForImage.setBackgroundImage(backgroundImageDataURL, fabricCanvasForImage.renderAll.bind(fabricCanvasForImage), {
+                        backgroundImageStretch: false
+                    });
+
+                    imageCanvasContainer.style.display = "block";
+                    createElementForFabricCanvas()
+
+                    fabricCanvasForImage.add(fixedEyePositionRight);
+                    fabricCanvasForImage.add(movableEyePositionRight);
+                    fabricCanvasForImage.add(fixedEyePositionLeft);
+                    fabricCanvasForImage.add(movableEyePositionLeft);
                 }
                 
                 //iris left
@@ -544,6 +593,73 @@ function computeAdaptiveThreshold(sourceImageData, ratio, callback) {
 var zoom = document.getElementById("zoom");
 var zoomCtx = zoom.getContext("2d");
 
+let lineForRight = ""
+let lineForLeft = ""
+
+fabricCanvasForImage.on('object:moving', function(e) {
+    let object = e.target;
+    if(object.top > 67 && object.top < 393 && object.left > 150 && object.left < 489) {
+        this.isDragging = true;
+    }else{
+        this.isDragging = false;
+    }
+
+});
+
+fabricCanvasForImage.on('object:modified', function(e) {
+    this.isDragging = false;
+    zoom.style.display = "none";
+    console.log(e.target.left);
+    if(e.target.left == movableEyePositionRight.left){
+        if(lineForRight){
+            fabricCanvasForImage.remove(lineForRight);
+        }
+
+        lineForRight = new fabric.Line([fixedEyePositionRight.left + fixedEyePositionRight.radius, 
+                                fixedEyePositionRight.top + fixedEyePositionRight.radius, 
+                                movableEyePositionRight.left, 
+                                movableEyePositionRight.top], {
+            stroke: 'blue',
+            strokeWidth: 4,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+        });
+        fabricCanvasForImage.add(lineForRight);
+    }else{
+
+        if(lineForLeft){
+            fabricCanvasForImage.remove(lineForLeft);
+        }
+
+        lineForLeft = new fabric.Line([fixedEyePositionLeft.left + fixedEyePositionLeft.radius, 
+                                fixedEyePositionLeft.top + fixedEyePositionLeft.radius, 
+                                movableEyePositionLeft.left, 
+                                movableEyePositionLeft.top], {
+            stroke: 'blue',
+            strokeWidth: 4,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+        });
+        fabricCanvasForImage.add(lineForLeft);
+    }
+})
+
+fabricCanvasForImage.on('mouse:move', function(opt) {
+    if (this.isDragging) {
+        var e = opt.e;
+        zoomCtx.clearRect(0, 0, zoom.width, zoom.height);
+        zoomCtx.fillStyle = "transparent";
+        zoomCtx.drawImage(
+            fabricCanvasForImage.lowerCanvasEl, e.offsetX - 50, e.offsetY - 50, 100, 100, 0, 0, 200, 200
+        );
+        zoom.style.top = e.pageY + 10 + "px";
+        zoom.style.left = e.pageX + 10 + "px";
+        zoom.style.display = "block";
+    }
+});
+
 canvasFabric.on('object:moving', function(e) {
     let object = e.target;
     if(object.top > 67 && object.top < 393 && object.left > 150 && object.left < 489) {
@@ -554,21 +670,19 @@ canvasFabric.on('object:moving', function(e) {
 
 });
 
-let lineForRight = ""
-let lineForLeft = ""
-
 canvasFabric.on('object:modified', function(e) {
     this.isDragging = false;
     zoom.style.display = "none";
-    if(e.target.left == fixedEyePositionRight.left){
+    console.log(e.target.left);
+    if(e.target.left == movableEyePositionRight.left){
         if(lineForRight){
             canvasFabric.remove(lineForRight);
         }
 
         lineForRight = new fabric.Line([fixedEyePositionRight.left + fixedEyePositionRight.radius, 
-                                fixedEyePositionRight.top + fixedEyePositionRight.radius , 
-                                movableEyePositionRight.left + movableEyePositionRight.radius, 
-                                movableEyePositionRight.top + movableEyePositionRight.radius ], {
+                                fixedEyePositionRight.top + fixedEyePositionRight.radius, 
+                                movableEyePositionRight.left, 
+                                movableEyePositionRight.top], {
             stroke: 'blue',
             strokeWidth: 4,
             hasControls: false,
@@ -583,9 +697,9 @@ canvasFabric.on('object:modified', function(e) {
         }
 
         lineForLeft = new fabric.Line([fixedEyePositionLeft.left + fixedEyePositionLeft.radius, 
-                                fixedEyePositionLeft.top + fixedEyePositionLeft.radius , 
-                                movableEyePositionLeft.left + movableEyePositionLeft.radius, 
-                                movableEyePositionLeft.top + movableEyePositionLeft.radius ], {
+                                fixedEyePositionLeft.top + fixedEyePositionLeft.radius, 
+                                movableEyePositionLeft.left, 
+                                movableEyePositionLeft.top], {
             stroke: 'blue',
             strokeWidth: 4,
             hasControls: false,
@@ -609,3 +723,4 @@ canvasFabric.on('mouse:move', function(opt) {
         zoom.style.display = "block";
     }
 });
+

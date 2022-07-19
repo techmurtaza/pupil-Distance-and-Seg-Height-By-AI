@@ -24,14 +24,17 @@
             <div style="margin-bottom: 1em;">
                 <input type="file" name="image" id="image-for-eye-pupils">
             </div>
-            <div>
+            <div class="image-main">
                 <div style="display: none;" class="loader-image">
                     <div class="lds-spinner"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
                 </div>
+                <canvas width="640" height="480" id="fabricCanvasForImage"></canvas>
                 <canvas width="640" height="480" id="canvasForImage"></canvas>
             </div>
             <div id="calculate-buttons-image" style="transform: translateY(-150%);">
-                <button id="calculate-image-pd">Calculate Segment Height</button>
+                <button id="calculate-image-pd-manually">Manually Calculate SH</button>
+                <button id="calculate-image-pd">Calculate SH</button>
+                <button id="calculate-image-pd-for-manually">Calculate SH</button>
             </div>
 
         </main> 

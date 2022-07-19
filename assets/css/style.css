@@ -46,7 +46,7 @@ div img {
     max-height: 480px;
 }
 
-#main-div-for-video{
+#main-div-for-video, .image-main{
     position: relative;
 }
 
