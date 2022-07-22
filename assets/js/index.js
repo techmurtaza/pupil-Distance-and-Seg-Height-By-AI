@@ -65,6 +65,8 @@ let lightning_and_face_div = document.querySelector("#main-div-for-video .face-a
 let lightning = document.querySelector("#main-div-for-video .face-and-lightning .lightning");
 let faceDiv = document.querySelector("#main-div-for-video .face-and-lightning .face");
 
+let ovalFaceImage = document.querySelector("#oval-face-image");
+
 cameraOnButton.addEventListener("click", () => {
     resetPhotoFunction();
     canvasFabric.clear();
@@ -175,7 +177,12 @@ function isItDark() {
     let ctx = canvas.getContext("2d");
     ctx.drawImage(video,0,0);
 
-    imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let centerPointX =  canvas.width / 2;
+    let centerPointY =  canvas.height / 2;
+    
+    imageData = ctx.getImageData(centerPointX - (ovalFaceImage.width / 2) , centerPointY - (ovalFaceImage.height / 2), 
+                                    ovalFaceImage.width , ovalFaceImage.height);
+    
     let data = imageData.data;
     let r,g,b, max_rgb;
     let light = 0, dark = 0;
