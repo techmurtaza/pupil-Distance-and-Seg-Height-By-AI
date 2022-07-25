@@ -64,6 +64,7 @@ getManualPdResult.style.display = "none";
 let lightning_and_face_div = document.querySelector("#main-div-for-video .face-and-lightning");
 let lightning = document.querySelector("#main-div-for-video .face-and-lightning .lightning");
 let faceDiv = document.querySelector("#main-div-for-video .face-and-lightning .face");
+let faceCloserDiv = document.querySelector("#main-div-for-video .face-and-lightning .face-size");
 
 let ovalFaceImage = document.querySelector("#oval-face-image");
 
@@ -77,6 +78,8 @@ cameraOnButton.addEventListener("click", () => {
     mainDivForVideo.style.display = "";
     startCamera();
     flagImage = false;
+    loader.style.display = "flex";
+
 });
 
 chooseImageButton.addEventListener("click", () => {
@@ -113,26 +116,50 @@ imageForEyePupils.addEventListener('change', (e) => {
 })
 
 
-let imageData
+let imageData;
+let diagonalSize;
 let loopForVideoFunction = async () => {
     click_button.style.display = "none";
     let model = await loadFaceLandmarkDetectionModel();
+    loader.style.display = "none";
     (async function loop() {
         if (video_image_div.style.display != "none") {
 
             lightning_and_face_div.style.display = "flex";
-            
+            let percentageForFaceInVideo = .75;
             let result = isItDark()
             const faces = await model.estimateFaces({
                 input: imageData,
             });
-
+            let insideFaceFlag = false;
             if (faces.length) {
                 faceDiv.style.color = "green"
                 faceDiv.children[1].innerHTML = "✓";
+
+                let faceLeftX = faces[0].boundingBox.topLeft[0]; 
+                let faceLeftY = faces[0].boundingBox.topLeft[1];
+                let faceLeftPoints = new Point(faceLeftX, faceLeftY);
+
+                let faceRightX = faces[0].boundingBox.bottomRight[0];
+                let faceRightY = faces[0].boundingBox.bottomRight[1];
+                let faceRightPoints = new Point(faceRightX, faceRightY);
+
+                let diagonalSizeOfFace = faceRightPoints.distanceTo(faceLeftPoints);
+
+                if(diagonalSize * percentageForFaceInVideo < diagonalSizeOfFace) {
+                    faceCloserDiv.style.color = "green"
+                    faceCloserDiv.children[1].innerHTML = "✓";
+                    insideFaceFlag = true;
+                }else{
+                    faceCloserDiv.style.color = "red";
+                    faceCloserDiv.children[1].innerHTML = "✕";
+                }
             }else{
                 faceDiv.style.color = "red";
                 faceDiv.children[1].innerHTML = "✕";
+
+                faceCloserDiv.style.color = "red";
+                faceCloserDiv.children[1].innerHTML = "✕";
             }
 
             if (!result) {
@@ -142,7 +169,7 @@ let loopForVideoFunction = async () => {
                 lightning.style.color = "red";
                 lightning.children[1].innerHTML = "✕";
             }
-            if(faces.length && !result) {
+            if(faces.length && !result && insideFaceFlag) {
                 click_button.style.display = "";
             }else{
                 click_button.style.display = "none";
@@ -180,9 +207,20 @@ function isItDark() {
     let centerPointX =  canvas.width / 2;
     let centerPointY =  canvas.height / 2;
     
-    imageData = ctx.getImageData(centerPointX - (ovalFaceImage.width / 2) , centerPointY - (ovalFaceImage.height / 2), 
-                                    ovalFaceImage.width , ovalFaceImage.height);
-    
+    /*
+     * finding the length of the line from the start of the oval to the end of the oval
+    **/
+    let containerStartXPoint = centerPointX - (ovalFaceImage.width / 2);
+    let containerStartYPoint = centerPointY - (ovalFaceImage.height / 2);
+    let containerStartPoints = new Point(containerStartXPoint, containerStartYPoint)
+
+    let containerEndXPoint = centerPointX + (ovalFaceImage.width / 2);
+    let containerEndYPoint = centerPointY + (ovalFaceImage.height / 2);
+    let containerEndPoints = new Point(containerEndXPoint, containerEndYPoint)
+
+    diagonalSize = containerStartPoints.distanceTo(containerEndPoints);
+
+    imageData = ctx.getImageData(containerStartXPoint , containerStartYPoint, ovalFaceImage.width , ovalFaceImage.height);
     let data = imageData.data;
     let r,g,b, max_rgb;
     let light = 0, dark = 0;
