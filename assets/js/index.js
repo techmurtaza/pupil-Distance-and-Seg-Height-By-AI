@@ -68,6 +68,8 @@ let faceCloserDiv = document.querySelector("#main-div-for-video .face-and-lightn
 
 let ovalFaceImage = document.querySelector("#oval-face-image");
 
+let counterDiv = document.querySelector(".counter");
+
 cameraOnButton.addEventListener("click", () => {
     resetPhotoFunction();
     canvasFabric.clear();
@@ -122,11 +124,14 @@ let loopForVideoFunction = async () => {
     click_button.style.display = "none";
     let model = await loadFaceLandmarkDetectionModel();
     loader.style.display = "none";
+    let captureFlag = false;
+    let setIntervalFlag = false;
+    let count = 5;
     (async function loop() {
         if (video_image_div.style.display != "none") {
 
             lightning_and_face_div.style.display = "flex";
-            let percentageForFaceInVideo = .75;
+            let percentageForFaceInVideo = 1;
             let result = isItDark()
             const faces = await model.estimateFaces({
                 input: imageData,
@@ -170,15 +175,40 @@ let loopForVideoFunction = async () => {
                 lightning.children[1].innerHTML = "✕";
             }
             if(faces.length && !result && insideFaceFlag) {
-                click_button.style.display = "";
+                // click_button.style.display = "";
+                captureFlag = true;
+                if(count == 5) counterDiv.children[0].children[0].innerHTML = "Please Look Straight";
+                counterDiv.style.display = "flex";
             }else{
-                click_button.style.display = "none";
+                // click_button.style.display = "none";
+                captureFlag = false;
+                count = 5;
+                setIntervalFlag = false;
+                counterDiv.style.display = "none";
             }
+            if(captureFlag && !setIntervalFlag && count == 5 && count > 0) {
+                setIntervalFlag = true;
+                let interval = setInterval(() => {
+                                    if(!captureFlag) {
+                                        clearInterval(interval);
+                                        setIntervalFlag = false;
+                                    } else if(count == 0 && captureFlag) {
+                                        clearInterval(interval);
+                                        counterDiv.style.display = "none";
+                                        clickPhoto();
+                                    } else if(count <= 3) counterDiv.children[0].children[0].innerHTML = `<b>${count}</b>`;
 
+                                    if(count <= 0) clearInterval(interval);
+
+                                    if(count > 0) count--;
+
+                                }, 1000);
+            }
             setTimeout(loop, 1000 / 30); // drawing at 30fps
         }else{
             click_button.style.display = "none";
             lightning_and_face_div.style.display = "none";
+            counterDiv.style.display = "none";
         }
     })();
 }
@@ -206,22 +236,31 @@ function isItDark() {
 
     let centerPointX =  canvas.width / 2;
     let centerPointY =  canvas.height / 2;
-    
+
+    const PERCENTAGE_OF_OVAL_START_X = 1.53;
+    const PERCENTAGE_OF_OVAL_START_Y = 1.35;
+    const PERCENTAGE_OF_OVAL_END_X = .57;
+    const PERCENTAGE_OF_OVAL_END_Y = .65;
     /*
      * finding the length of the line from the start of the oval to the end of the oval
     **/
-    let containerStartXPoint = centerPointX - (ovalFaceImage.width / 2);
-    let containerStartYPoint = centerPointY - (ovalFaceImage.height / 2);
+    let containerStartXPoint = (centerPointX - (ovalFaceImage.width / 2)) * PERCENTAGE_OF_OVAL_START_X;
+    let containerStartYPoint = (centerPointY - (ovalFaceImage.height / 2)) * PERCENTAGE_OF_OVAL_START_Y;
     let containerStartPoints = new Point(containerStartXPoint, containerStartYPoint)
 
-    let containerEndXPoint = centerPointX + (ovalFaceImage.width / 2);
-    let containerEndYPoint = centerPointY + (ovalFaceImage.height / 2);
+    let containerEndXPoint = (centerPointX + (ovalFaceImage.width / 2))  * PERCENTAGE_OF_OVAL_END_X;
+    let containerEndYPoint = (centerPointY + (ovalFaceImage.height / 2))  * PERCENTAGE_OF_OVAL_END_Y;
     let containerEndPoints = new Point(containerEndXPoint, containerEndYPoint)
 
     diagonalSize = containerStartPoints.distanceTo(containerEndPoints);
 
-    imageData = ctx.getImageData(containerStartXPoint , containerStartYPoint, ovalFaceImage.width , ovalFaceImage.height);
-    let data = imageData.data;
+    imageData = ctx.getImageData(containerStartXPoint, containerStartYPoint,
+        ovalFaceImage.width * PERCENTAGE_OF_OVAL_END_X, 
+        ovalFaceImage.height * PERCENTAGE_OF_OVAL_END_Y);
+
+    let imageDataForLight = ctx.getImageData(0 , 0, canvas.width, canvas.height);
+
+    let data = imageDataForLight.data;
     let r,g,b, max_rgb;
     let light = 0, dark = 0;
 
@@ -274,6 +313,10 @@ getManualPdResult.addEventListener("click", () => {
 })
 
 click_button.addEventListener('click', function () {
+    clickPhoto();
+});
+
+function clickPhoto(){
     video_image_div.style.display = "none";
     canvas.style.display = "block";
     reset_and_calculate_buttons_div.style.display = "flex";
@@ -285,7 +328,7 @@ click_button.addEventListener('click', function () {
     ctx.scale(-1, 1);
     ctx.drawImage(video, canvas.width * -1, 0, canvas.width, canvas.height);
     ctx.restore();
-});
+}
 
 reset_photo.addEventListener('click', function () {
     resetPhotoFunction();
