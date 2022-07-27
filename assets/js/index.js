@@ -131,7 +131,7 @@ let loopForVideoFunction = async () => {
         if (video_image_div.style.display != "none") {
 
             lightning_and_face_div.style.display = "flex";
-            let percentageForFaceInVideo = 1;
+            let percentageForFaceInVideo = .9;
             let result = isItDark()
             const faces = await model.estimateFaces({
                 input: imageData,
@@ -237,9 +237,9 @@ function isItDark() {
     let centerPointX =  canvas.width / 2;
     let centerPointY =  canvas.height / 2;
 
-    const PERCENTAGE_OF_OVAL_START_X = 1.53;
+    const PERCENTAGE_OF_OVAL_START_X = 1;
     const PERCENTAGE_OF_OVAL_START_Y = 1.35;
-    const PERCENTAGE_OF_OVAL_END_X = .57;
+    const PERCENTAGE_OF_OVAL_END_X = 1;
     const PERCENTAGE_OF_OVAL_END_Y = .65;
     /*
      * finding the length of the line from the start of the oval to the end of the oval
@@ -345,6 +345,7 @@ let resetPhotoFunction = () => {
     reset_and_calculate_buttons_div.style.display = "none";
     click_button.style.display = "block";
     pupil_distance_text.innerHTML = "";
+    calculateManuallyValue.style.display = "none";
 }
 
 calculate_distance.addEventListener('click', function () {
